@@ -198,7 +198,7 @@ std::vector<Object> YoloV8::postProcessSegmentation(std::vector<std::vector<floa
     }
 
     // Require OpenCV 4.7 for this function
-    cv::dnn::NMSBoxesBatched(bboxes, scores, labels, PROBABILITY_THRESHOLD, NMS_THRESHOLD, indices);
+    cv::dnn::NMSBoxes(bboxes, scores, /*labels,*/ PROBABILITY_THRESHOLD, NMS_THRESHOLD, indices);
 
     // Obtain the segmentation masks
     cv::Mat masks;
@@ -305,7 +305,7 @@ std::vector<Object> YoloV8::postprocessPose(std::vector<float> &featureVector) {
     }
 
     // Run NMS
-    cv::dnn::NMSBoxesBatched(bboxes, scores, labels, PROBABILITY_THRESHOLD, NMS_THRESHOLD, indices);
+    cv::dnn::NMSBoxes(bboxes, scores, /*labels,*/ PROBABILITY_THRESHOLD, NMS_THRESHOLD, indices);
 
     std::vector<Object> objects;
 
@@ -376,7 +376,7 @@ std::vector<Object> YoloV8::postprocessDetect(std::vector<float> &featureVector)
     }
 
     // Run NMS
-    cv::dnn::NMSBoxesBatched(bboxes, scores, labels, PROBABILITY_THRESHOLD, NMS_THRESHOLD, indices);
+    cv::dnn::NMSBoxes(bboxes, scores, /*labels,*/ PROBABILITY_THRESHOLD, NMS_THRESHOLD, indices);
 
     std::vector<Object> objects;
 

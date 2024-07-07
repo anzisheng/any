@@ -1,3 +1,4 @@
+////./detect_object_image --model ../models/yolov8n-face_bs=1.onnx --input ../images/person.jpg
 #include "cmd_line_util.h"
 #include "yolov8.h"
 
