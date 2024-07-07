@@ -441,6 +441,7 @@ void YoloV8::drawObjectLabels(cv::Mat &image, const std::vector<Object> &objects
 
         int x = object.rect.x;
         int y = object.rect.y + 1;
+        std::cout <<x<< "  "<<y<<"  " << labelSize.width<<"  " << labelSize.height + baseLine << std::endl;
 
         cv::rectangle(image, rect, color * 255, scale + 1);
 

@@ -1,4 +1,5 @@
 ////./detect_object_image --model ../models/yolov8n-face_bs=1.onnx --input ../images/person.jpg
+//./detect_object_image --model ./yolov8n-face.onnx --input ../images/1.jpg
 #include "cmd_line_util.h"
 #include "yolov8.h"
 
