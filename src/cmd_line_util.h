@@ -81,7 +81,7 @@ inline bool tryParseFloat(const std::string &s, float &value, const std::string 
     }
 }
 
-inline bool parseArguments(int argc, char *argv[], YoloV8Config &config, std::string &onnxModelPath, std::string &inputImage) {
+inline bool parseArguments(int argc, char *argv[], YoloV8Config &config, std::string &onnxModelPath, std::string &onnxModelPathLandmark, std::string &inputImage) {
     if (argc == 1) {
         showHelp(argv);
         return false;
@@ -104,6 +104,17 @@ inline bool parseArguments(int argc, char *argv[], YoloV8Config &config, std::st
                 }
 
                 onnxModelPath = nextArgument;
+            }
+            else if (flag == "landmarks") {
+                if (!tryGetNextArgument(argc, argv, i, nextArgument, flag))
+                    return false;
+
+                if (!doesFileExist(nextArgument)) {
+                    std::cout << "Error: Unable to find model at path '" << nextArgument << "' for flag '" << flag << "'" << std::endl;
+                    return false;
+                }
+
+                onnxModelPathLandmark = nextArgument;
             }
 
             else if (flag == "input") {

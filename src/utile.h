@@ -20,6 +20,15 @@ struct Object {
     std::vector<float> kps{};
 };
 
+typedef struct
+{
+    float xmin;
+    float ymin;
+    float xmax;
+    float ymax;
+} Bbox;
+
+
 
 // Config the behavior of the YoloV8 detector.
 // Can pass these arguments as command line parameters.
