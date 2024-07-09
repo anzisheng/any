@@ -110,12 +110,18 @@ std::vector<cv::Point2f> Face68Landmarks::postprocess(std::vector<float> &featur
     const int num_points = featureVector.size() / 3; //3 represent x, y and score
     float *pdata  = featureVector.data();
     vector<Point2f> face_landmark_68(num_points);
+    std::cout << "befor transform \n";
     for (int i = 0; i < num_points; i++)
     {
         float x = pdata[i * 3] / 64.0 * 256.0;
         float y = pdata[i * 3 + 1] / 64.0 * 256.0;
         face_landmark_68[i] = Point2f(x, y);
+        cout <<i <<": "<< x <<"   "<<y <<std::endl;
+        circle(m_srcImg, face_landmark_68[i], 3 ,Scalar(0,255,0),-1);
     }
+    imwrite("landmark.jpg",m_srcImg);
+
+
     return ret;
 }
 
@@ -157,6 +163,9 @@ vector<Point2f> Face68Landmarks::detectlandmark(const cv::cuda::GpuMat &inputIma
             }
         std::vector<Point2f> result;
         result = postprocess(featureVector[1]);
+
+
+
 
         }
 
@@ -200,6 +209,8 @@ vector<Point2f> Face68Landmarks::detectlandmark(const cv::cuda::GpuMat &inputIma
 
 
 vector<Point2f> Face68Landmarks::detectlandmark(const cv::Mat &inputImageBGR,Object& object, vector<Point2f> &face_landmark_5of68){
+    
+    m_srcImg = inputImageBGR;
     // Upload the image to GPU memory
     cv::cuda::GpuMat gpuImg;
     gpuImg.upload(inputImageBGR);

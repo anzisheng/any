@@ -19,6 +19,8 @@ public:
     // Postprocess the output
     std::vector<cv::Point2f> postprocess(std::vector<float> &featureVector);
 
+    cv::Mat m_srcImg;
+
 
 private:
     std::unique_ptr<Engine<float>> m_trtEngine_landmark = nullptr;
