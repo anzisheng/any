@@ -1,5 +1,8 @@
 #include "Face68Landmarks.h"
 #include "engine.h"
+#include <iostream>
+#include <fstream>
+using namespace std;
 using namespace std;
 using namespace cv;
 
@@ -69,7 +72,17 @@ std::vector<std::vector<cv::cuda::GpuMat>> Face68Landmarks::preprocess(const cv:
     return inputs;
 }
 */
-std::vector<std::vector<cv::cuda::GpuMat>> Face68Landmarks::preprocess(const cv::cuda::GpuMat &gpuImg) {
+std::vector<std::vector<cv::cuda::GpuMat>> Face68Landmarks::preprocess(const cv::cuda::GpuMat &gpuImg, Object& object) {
+
+       
+    
+    //affie matrix
+    
+    //const float scale = 195.f / sub_max;
+
+
+
+
     // Populate the input vectors
     const auto &inputDims = m_trtEngine_landmark->getInputDims();
     //std::cout << "inputDims" <<inputDims.dims <<std::endl;
@@ -103,23 +116,83 @@ std::vector<std::vector<cv::cuda::GpuMat>> Face68Landmarks::preprocess(const cv:
 }
 
 
-std::vector<cv::Point2f> Face68Landmarks::postprocess(std::vector<float> &featureVector)
+std::vector<cv::Point2f> Face68Landmarks::postprocess(std::vector<float> &featureVector, vector<Point2f> &face_landmark_5of68)
 {
     std::cout <<"featureVector: " << featureVector.size()<<std::endl;
     std::vector<Point2f> ret;
     const int num_points = featureVector.size() / 3; //3 represent x, y and score
     float *pdata  = featureVector.data();
     vector<Point2f> face_landmark_68(num_points);
+    ifstream srcFile("out.txt", ios::in); 
+
     std::cout << "befor transform \n";
     for (int i = 0; i < num_points; i++)
     {
-        float x = pdata[i * 3] / 64.0 * 256.0;
+        //float x; srcFile >> x;
+        //float y; srcFile >> y;
+        
+        float x = pdata[i * 3] / 64.0 * 256.0;        
         float y = pdata[i * 3 + 1] / 64.0 * 256.0;
         face_landmark_68[i] = Point2f(x, y);
         cout <<i <<": "<< x <<"   "<<y <<std::endl;
         circle(m_srcImg, face_landmark_68[i], 3 ,Scalar(0,255,0),-1);
     }
+
     imwrite("landmark.jpg",m_srcImg);
+
+    Mat srcimg_transform = this->m_srcImg.clone();
+    vector<Point2f> face68landmarks;
+    cv::transform(face_landmark_68, face68landmarks, this->inv_affine_matrix);
+
+    std::cout << "after transform/n";
+    for(int i = 0; i < face68landmarks.size(); i++)
+    {
+        cout << face68landmarks[i].x << "   " <<face68landmarks[i].y << std::endl;
+        circle(srcimg_transform, face68landmarks[i], 3, Scalar(120, 255, 120), -1);
+    }
+    imwrite("landmark_tansform.jpg", srcimg_transform);
+
+
+    ////python程序里的convert_face_landmark_68_to_5函数////
+    face_landmark_5of68.resize(5);
+    float x = 0, y = 0;
+    for (int i = 36; i < 42; i++) /// left_eye
+    {
+        x += face68landmarks[i].x;
+        y += face68landmarks[i].y;
+    }
+    x /= 6;
+    y /= 6;
+    face_landmark_5of68[0] = Point2f(x, y); /// left_eye
+
+    x = 0, y = 0;
+    for (int i = 42; i < 48; i++) /// right_eye
+    {
+        x += face68landmarks[i].x;
+        y += face68landmarks[i].y;
+    }
+    x /= 6;
+    y /= 6;
+    face_landmark_5of68[1] = Point2f(x, y); /// right_eye
+
+    face_landmark_5of68[2] = face68landmarks[30]; /// nose
+    face_landmark_5of68[3] = face68landmarks[48]; /// left_mouth_end
+    face_landmark_5of68[4] = face68landmarks[54]; /// right_mouth_end
+    ////python程序里的convert_face_landmark_68_to_5函数////
+    cout << "the rest 5 from 68\n";
+    for(int i = 0; i < face_landmark_5of68.size(); i++)
+    {
+        std::cout << face_landmark_5of68[i].x << "   "<<face_landmark_5of68[i].y <<endl;
+        circle(srcimg_transform, face_landmark_5of68[i], 5, Scalar(255, 0, 0), 4);
+
+    }
+
+    imwrite("landmark_tansform.jpg", srcimg_transform);
+
+
+
+
+
 
 
     return ret;
@@ -129,7 +202,7 @@ std::vector<cv::Point2f> Face68Landmarks::postprocess(std::vector<float> &featur
 vector<Point2f> Face68Landmarks::detectlandmark(const cv::cuda::GpuMat &inputImageBGR, Object& object,vector<Point2f> &face_landmark_5of68)
     {
         //preprocess, get input
-        const auto input = preprocess(inputImageBGR);
+        const auto input = preprocess(inputImageBGR, object);
 
         //send to network
         std::vector<std::vector<std::vector<float>>> featureVectors;
@@ -162,7 +235,9 @@ vector<Point2f> Face68Landmarks::detectlandmark(const cv::cuda::GpuMat &inputIma
                 cout << std::endl;
             }
         std::vector<Point2f> result;
-        result = postprocess(featureVector[1]);
+        result = postprocess(featureVector[1],face_landmark_5of68);
+        
+        return result;
 
 
 
@@ -209,8 +284,30 @@ vector<Point2f> Face68Landmarks::detectlandmark(const cv::cuda::GpuMat &inputIma
 
 
 vector<Point2f> Face68Landmarks::detectlandmark(const cv::Mat &inputImageBGR,Object& object, vector<Point2f> &face_landmark_5of68){
-    
     m_srcImg = inputImageBGR;
+    //float sub_max = max(bounding_box.xmax - bounding_box.xmin, bounding_box.ymax - bounding_box.ymin);
+    //264.001038, 349.481873, 660.798401, 817.96704
+
+    Bbox bounding_box;
+    bounding_box.xmin = object.rect.x;//264.001038;
+    bounding_box.ymin = object.rect.y;//349.481873;
+    bounding_box.xmax = object.rect.x + object.rect.width;
+    bounding_box.ymax = object.rect.y + object.rect.height;
+
+ 
+
+    float sub_max = max(object.rect.width, object.rect.height);
+    const float scale = 195.f / sub_max;
+    const float translation[2] = {(256.f - (bounding_box.xmax + bounding_box.xmin) * scale) * 0.5f, (256.f - (bounding_box.ymax + bounding_box.ymin) * scale) * 0.5f};
+    ////python程序里的warp_face_by_translation函数////
+    Mat affine_matrix = (Mat_<float>(2, 3) << scale, 0.f, translation[0], 0.f, scale, translation[1]);
+    Mat crop_img;
+    warpAffine(m_srcImg, crop_img, affine_matrix, Size(256, 256));
+    ////python程序里的warp_face_by_translation函数////
+    cv::invertAffineTransform(affine_matrix, this->inv_affine_matrix);
+    
+    
+    
     // Upload the image to GPU memory
     cv::cuda::GpuMat gpuImg;
     gpuImg.upload(inputImageBGR);

@@ -15,11 +15,12 @@ public:
     vector<Point2f> detectlandmark(const cv::cuda::GpuMat &inputImageBGR, Object& object,vector<Point2f> &face_landmark_5of68);    
     vector<Point2f> detectlandmark(const cv::Mat &inputImageBGR,Object& object, vector<Point2f> &face_landmark_5of68) ;
     
-    std::vector<std::vector<cv::cuda::GpuMat>> preprocess(const cv::cuda::GpuMat &gpuImg);
+    std::vector<std::vector<cv::cuda::GpuMat>> preprocess(const cv::cuda::GpuMat &gpuImg, Object& object);
     // Postprocess the output
-    std::vector<cv::Point2f> postprocess(std::vector<float> &featureVector);
+    std::vector<cv::Point2f> postprocess(std::vector<float> &featureVector, vector<Point2f> &face_landmark_5of68);
 
     cv::Mat m_srcImg;
+    cv::Mat inv_affine_matrix;
 
 
 private:
