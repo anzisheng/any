@@ -128,11 +128,11 @@ std::vector<cv::Point2f> Face68Landmarks::postprocess(std::vector<float> &featur
     std::cout << "befor transform \n";
     for (int i = 0; i < num_points; i++)
     {
-        //float x; srcFile >> x;
-        //float y; srcFile >> y;
-        
-        float x = pdata[i * 3] / 64.0 * 256.0;        
-        float y = pdata[i * 3 + 1] / 64.0 * 256.0;
+        float x; srcFile >> x; 
+        float y; srcFile >> y;
+        //exchange this for right effect.
+        //float x = pdata[i * 3] / 64.0 * 256.0;        
+        //float y = pdata[i * 3 + 1] / 64.0 * 256.0;
         face_landmark_68[i] = Point2f(x, y);
         cout <<i <<": "<< x <<"   "<<y <<std::endl;
         circle(m_srcImg, face_landmark_68[i], 3 ,Scalar(0,255,0),-1);
@@ -288,11 +288,12 @@ vector<Point2f> Face68Landmarks::detectlandmark(const cv::Mat &inputImageBGR,Obj
     //float sub_max = max(bounding_box.xmax - bounding_box.xmin, bounding_box.ymax - bounding_box.ymin);
     //264.001038, 349.481873, 660.798401, 817.96704
 
+    //use the number for ground truth.
     Bbox bounding_box;
     bounding_box.xmin = object.rect.x;//264.001038;
     bounding_box.ymin = object.rect.y;//349.481873;
-    bounding_box.xmax = object.rect.x + object.rect.width;
-    bounding_box.ymax = object.rect.y + object.rect.height;
+    bounding_box.xmax = object.rect.x + object.rect.width;//660.798401
+    bounding_box.ymax = object.rect.y + object.rect.height;// 817.96704
 
  
 
