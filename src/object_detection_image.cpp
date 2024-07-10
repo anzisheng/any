@@ -88,6 +88,7 @@ int main(int argc, char *argv[]) {
 
 
     vector<float> source_face_embedding = face_embedding_net.detect(source_img, face_landmark_5of68);
+
     ofstream destFile2("embedding_cpp.txt", ios::out); 
 
 	for(int i =0; i < source_face_embedding.size(); i++)
@@ -95,6 +96,37 @@ int main(int argc, char *argv[]) {
 		destFile2 << source_face_embedding[i] << " " ;
 	}
 	destFile2.close();
+    
+    //read the data from groundtruth
+    //face_embedding_net    
+    ifstream srcFile_emb("embedding.txt", ios::in); 
+    if(!srcFile_emb.is_open())
+    {
+        cout << "cann't open embedding.txt"<<endl;
+    }
+    std::cout <<"embedding.txt:" << endl;
+    float x; 
+    for(int i = 0; i< source_face_embedding.size(); i++)
+    {
+        cout << i <<"  :";
+        
+        
+        srcFile_emb >> x; 
+        std::cout << x <<"  ";
+        source_face_embedding[i] = x;
+        cout << endl;
+        
+        // float y; 
+        // srcFile >> y;
+        // std::cout << y <<"  "<<endl;
+        // face_landmark_5of68[i].y = y;
+        
+    }
+    srcFile.close();
+    cout << endl;
+    
+
+
 
     return 0;
 }
