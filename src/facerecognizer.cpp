@@ -1,0 +1,104 @@
+#include "facerecognizer.h"
+#include "utile.h"
+#include "engine.h"
+#include "yolov8.h"
+using namespace cv;
+using namespace std;
+
+
+FaceEmbdding::FaceEmbdding(string onnxModelPath, const YoloV8Config &config)
+{
+    // Specify options for GPU inference
+    Options options;
+    options.optBatchSize = 1;
+    options.maxBatchSize = 1;
+
+    options.precision = config.precision;
+    options.calibrationDataDirectoryPath = config.calibrationDataDirectory;
+
+    if (options.precision == Precision::INT8) {
+        if (options.calibrationDataDirectoryPath.empty()) {
+            throw std::runtime_error("Error: Must supply calibration data path for INT8 calibration");
+        }
+    }  
+    
+
+        // Create our TensorRT inference engine
+    m_trtEngine_embedding = std::make_unique<Engine<float>>(options);
+
+    // Build the onnx model into a TensorRT engine file, cache the file to disk, and then load the TensorRT engine file into memory.
+    // If the engine file already exists on disk, this function will not rebuild but only load into memory.
+    // The engine file is rebuilt any time the above Options are changed.
+    auto succ = m_trtEngine_embedding->buildLoadNetwork(onnxModelPath, SUB_VALS, DIV_VALS, NORMALIZE);
+    if (!succ) {
+        const std::string errMsg = "Error: Unable to build or load the TensorRT engine. "
+                                   "Try increasing TensorRT log severity to kVERBOSE (in /libs/tensorrt-cpp-api/engine.cpp).";
+        throw std::runtime_error(errMsg);
+    }
+
+}
+
+//std::vector<float> FaceEmbdding::detect(cv::Mat& srcimg,  std::vector<cv::Point2f>& face_landmark_5)
+std::vector<float> FaceEmbdding::detect(cv::Mat& srcimg,        std::vector<cv::Point2f>& face_landmark_5)
+{
+//    std::vector<Object> YoloV8::detectObjects(const cv::Mat &inputImageBGR) {
+    // Upload the image to GPU memory
+    cv::cuda::GpuMat gpuImg;
+    gpuImg.upload(srcimg);
+
+    // Call detectObjects with the GPU image
+    return detect(gpuImg, face_landmark_5);
+}
+
+std::vector<float> FaceEmbdding::detect(cv::cuda::GpuMat &inputImageBGR,  std::vector<cv::Point2f>& face_landmark_5)
+{
+    
+    const auto input = preprocess(inputImageBGR, face_landmark_5);
+    std::vector<std::vector<std::vector<float>>> featureVectors;
+
+    auto succ = m_trtEngine_embedding->runInference(input, featureVectors);
+
+    std::vector<Object> ret;
+    const auto &numOutputs = m_trtEngine_embedding->getOutputDims().size();
+
+
+
+}
+
+//std::vector<std::vector<cv::cuda::GpuMat>> YoloV8::preprocess(const cv::cuda::GpuMat &gpuImg) 
+std::vector<std::vector<cv::cuda::GpuMat>> FaceEmbdding::preprocess(const cv::cuda::GpuMat &gpuImg, const vector<Point2f> face_landmark_5)
+{
+    // Populate the input vectors
+    const auto &inputDims = m_trtEngine_embedding->getInputDims();
+
+    // Convert the image from BGR to RGB
+    cv::cuda::GpuMat rgbMat;
+    cv::cuda::cvtColor(gpuImg, rgbMat, cv::COLOR_BGR2RGB);
+
+    auto resized = rgbMat;
+    // Resize to the model expected input size while maintaining the aspect ratio with the use of padding
+    if (resized.rows != inputDims[0].d[1] || resized.cols != inputDims[0].d[2]) {
+        // Only resize if not already the right size to avoid unecessary copy
+        resized = Engine<float>::resizeKeepAspectRatioPadRightBottom(rgbMat, inputDims[0].d[1], inputDims[0].d[2]);
+    }
+    // Convert to format expected by our inference engine
+    // The reason for the strange format is because it supports models with multiple inputs as well as batching
+    // In our case though, the model only has a single input and we are using a batch size of 1.
+    std::vector<cv::cuda::GpuMat> input{std::move(resized)};
+    std::vector<std::vector<cv::cuda::GpuMat>> inputs{std::move(input)};
+
+        // These params will be used in the post-processing stage
+    m_imgHeight = rgbMat.rows;
+    m_imgWidth = rgbMat.cols;
+    m_ratio = 1.f / std::min(inputDims[0].d[2] / static_cast<float>(rgbMat.cols), inputDims[0].d[1] / static_cast<float>(rgbMat.rows));
+
+    return inputs;
+
+
+
+
+
+    
+
+
+}

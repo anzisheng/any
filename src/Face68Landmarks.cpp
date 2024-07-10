@@ -124,6 +124,10 @@ std::vector<cv::Point2f> Face68Landmarks::postprocess(std::vector<float> &featur
     float *pdata  = featureVector.data();
     vector<Point2f> face_landmark_68(num_points);
     ifstream srcFile("out.txt", ios::in); 
+    if(!srcFile.is_open())
+    {
+        cout << "cann't open the out.txt"<<endl;
+    }
 
     std::cout << "befor transform \n";
     for (int i = 0; i < num_points; i++)
@@ -137,6 +141,7 @@ std::vector<cv::Point2f> Face68Landmarks::postprocess(std::vector<float> &featur
         cout <<i <<": "<< x <<"   "<<y <<std::endl;
         circle(m_srcImg, face_landmark_68[i], 3 ,Scalar(0,255,0),-1);
     }
+    srcFile.close();
 
     imwrite("landmark.jpg",m_srcImg);
 

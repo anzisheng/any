@@ -1,6 +1,7 @@
 ////./detect_object_image --model ../models/yolov8n-face_bs=1.onnx --input ../images/person.jpg
 //./detect_object_image --model ./yolov8n-face.onnx  --landmarks ^Cfan4.onnx --input ../images/1.jpg
 #include  "Face68Landmarks.h"
+#include "facerecognizer.h"
 #include "cmd_line_util.h"
 #include "yolov8.h"
 #include <opencv2/imgproc.hpp>
@@ -21,10 +22,11 @@ int main(int argc, char *argv[]) {
     // Create the YoloV8 engine
     YoloV8 yoloV8("yolov8n-face.onnx", config); //
     Face68Landmarks detect_68landmarks_net("2dfan4.onnx", config);
-
+    FaceEmbdding face_embedding_net("arcface_w600k_r50.onnx", config);
+    
 
     // Read the input image
-    auto img = cv::imread(inputImage);
+    cv::Mat img = cv::imread(inputImage);
     if (img.empty()) {
         std::cout << "Error: Unable to read image at path '" << inputImage << "'" << std::endl;
         return -1;
@@ -50,6 +52,41 @@ int main(int argc, char *argv[]) {
 
     std::vector<cv::Point2f> face_landmark_5of68;
     std::vector<cv::Point2f> face68landmarks = detect_68landmarks_net.detectlandmark(img, objects[0], face_landmark_5of68);
+    std::cout << "face_landmark_5of68 size" <<face_landmark_5of68.size()<<std::endl;
+    
+
+    //face_embedding_net    
+    ifstream srcFile("5landmark.txt", ios::in); 
+    if(!srcFile.is_open())
+    {
+        cout << "cann't open 5landmark.txt"<<endl;
+    }
+    std::cout <<"5landmark.txt" << endl;
+    for(int i = 0; i< face_landmark_5of68.size(); i++)
+    {
+        cout << i <<"  :";
+        
+        float x; 
+        srcFile >> x; 
+        std::cout << x <<"  ";
+        face_landmark_5of68[i].x = x;
+        
+        float y; 
+        srcFile >> y;
+        std::cout << y <<"  "<<endl;
+        face_landmark_5of68[i].y = y;
+        
+    }
+    srcFile.close();
+    cout << "verify face_landmark_5of68:"<<endl;
+    for(int i = 0; i< face_landmark_5of68.size(); i++)
+    {        
+        cout << face_landmark_5of68[i].x << "   "<< face_landmark_5of68[i].y <<endl ;       
+        
+    }
+
+
+    //vector<float> source_face_embedding = face_embedding_net.detect(img, face_landmark_5of68);
 
     return 0;
 }

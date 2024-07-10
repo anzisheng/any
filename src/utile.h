@@ -1,6 +1,9 @@
 #ifndef __UTIL__H
 #define __UTIL__H
-
+#include <opencv2/cudaimgproc.hpp>
+#include <opencv2/cudaimgproc.hpp>
+#include "engine.h"
+using namespace cv;
 // Utility method for checking if a file exists on disk
 inline bool doesFileExist(const std::string &name) {
     std::ifstream f(name.c_str());
