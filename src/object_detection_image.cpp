@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
 
     // Read the input image
     cv::Mat img = cv::imread(inputImage);
+    cv::Mat source_img = img.clone();
     if (img.empty()) {
         std::cout << "Error: Unable to read image at path '" << inputImage << "'" << std::endl;
         return -1;
@@ -86,7 +87,14 @@ int main(int argc, char *argv[]) {
     }
 
 
-    //vector<float> source_face_embedding = face_embedding_net.detect(img, face_landmark_5of68);
+    vector<float> source_face_embedding = face_embedding_net.detect(source_img, face_landmark_5of68);
+    ofstream destFile2("embedding_cpp.txt", ios::out); 
+
+	for(int i =0; i < source_face_embedding.size(); i++)
+	{
+		destFile2 << source_face_embedding[i] << " " ;
+	}
+	destFile2.close();
 
     return 0;
 }

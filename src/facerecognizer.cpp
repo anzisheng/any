@@ -54,15 +54,47 @@ std::vector<float> FaceEmbdding::detect(cv::cuda::GpuMat &inputImageBGR,  std::v
 {
     
     const auto input = preprocess(inputImageBGR, face_landmark_5);
+    cout << "after preprocess"<<endl;
+
+
     std::vector<std::vector<std::vector<float>>> featureVectors;
-
     auto succ = m_trtEngine_embedding->runInference(input, featureVectors);
+    cout << "after runInference"<<endl;
 
-    std::vector<Object> ret;
+    //
     const auto &numOutputs = m_trtEngine_embedding->getOutputDims().size();
+    cout << "befor postprocess"<<endl;
+    cout <<"numOutputs size : " << numOutputs <<endl;
+    std::vector<float> ret;
+    if (numOutputs == 1) {
+        std::vector<float> featureVector;
+        Engine<float>::transformOutput(featureVectors, featureVector);
+        ret = postprocess(featureVector);
+        return ret;
+    }
+    return ret;
+}
+//std::vector<float> FaceEmbdding::postprocess(std::vector<float> &featureVector);
+std::vector<float> FaceEmbdding::postprocess(std::vector<float> &featureVector)
+{
+    const auto &outputDims = m_trtEngine_embedding->getOutputDims();
+    auto numChannels = outputDims[0].d[1];
+    cout << "numChannels size:"<<numChannels<<endl;
+    float *pdata = featureVector.data();
+    ofstream destFile2("embedding_cpp123.txt", ios::out); 
 
+	for(int i =0; i < (int)numChannels; i++)
+	{
+		destFile2 << pdata[i] << " " ;
+	}
+	destFile2.close();
 
+    //auto numAnchors = outputDims[0].d[2];
+    vector<float> embedding(numChannels);
+    //memcpy(embedding.data(), pdata, len_feature*sizeof(float));
+    cudaMemcpy(embedding.data(), pdata, numChannels*sizeof(float), cudaMemcpyDeviceToHost );
 
+    return embedding;
 }
 
 //std::vector<std::vector<cv::cuda::GpuMat>> YoloV8::preprocess(const cv::cuda::GpuMat &gpuImg) 
@@ -84,20 +116,17 @@ std::vector<std::vector<cv::cuda::GpuMat>> FaceEmbdding::preprocess(const cv::cu
     // Convert to format expected by our inference engine
     // The reason for the strange format is because it supports models with multiple inputs as well as batching
     // In our case though, the model only has a single input and we are using a batch size of 1.
+    cout << "hello1"<<endl;
     std::vector<cv::cuda::GpuMat> input{std::move(resized)};
+    cout << "hello2"<<endl;
     std::vector<std::vector<cv::cuda::GpuMat>> inputs{std::move(input)};
-
+    cout << "hello3"<<endl;
         // These params will be used in the post-processing stage
     m_imgHeight = rgbMat.rows;
     m_imgWidth = rgbMat.cols;
     m_ratio = 1.f / std::min(inputDims[0].d[2] / static_cast<float>(rgbMat.cols), inputDims[0].d[1] / static_cast<float>(rgbMat.rows));
-
+    cout << "hello4"<<endl;
     return inputs;
-
-
-
-
-
     
 
 

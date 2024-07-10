@@ -18,13 +18,16 @@ public:
     std::vector<float> detect(cv::cuda::GpuMat& srcimg,  std::vector<cv::Point2f>& face_landmark_5);
     
     std::vector<float> detect(cv::Mat& srcimg,        std::vector<cv::Point2f>& face_landmark_5);                                     
-    
+    std::vector<float> postprocess(std::vector<float> &featureVector);
 	
 private:
 	std::unique_ptr<Engine<float>> m_trtEngine_embedding = nullptr;
     std::vector<std::vector<cv::cuda::GpuMat>> preprocess(const cv::cuda::GpuMat &gpuImg, const vector<Point2f> face_landmark_5);
 	//void preprocess(cv::Mat img, const std::vector<cv::Point2f> face_landmark_5);
-	std::vector<float> input_image;
+	// Postprocess the output for pose model
+    
+
+    std::vector<float> input_image;
 	int input_height;
 	int input_width;
     std::vector<cv::Point2f> normed_template;
