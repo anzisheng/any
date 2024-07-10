@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
     YoloV8Config config;
     std::string onnxModelPath;
     std::string onnxModelPathLandmark;
-    std::string inputImage = "../images/6.jpg";
+    std::string inputImage = "../images/1.jpg";
 
     // Parse the command line arguments
     // if (!parseArguments(argc, argv, config, onnxModelPath, onnxModelPathLandmark, inputImage)) {
@@ -125,6 +125,61 @@ int main(int argc, char *argv[]) {
     srcFile.close();
     cout << endl;
     
+    //target
+    std::string target_path = "../images/6.jpg";
+    Mat target_img = imread(target_path);
+
+
+    //detect_face_net.detect(target_img, boxes);
+    std::vector<Object>objects_target = yoloV8.detectObjects(target_img);
+    //Object  obj = objects[0];
+
+    // Draw the bounding boxes on the image
+    yoloV8.drawObjectLabels(target_img, objects_target);
+
+    std::cout << "Detected " << objects_target.size() << " objects" << std::endl;
+
+    // Save the image to disk
+    const auto outputName2 = target_path.substr(0, target_path.find_last_of('.')) + "_annotated.jpg";
+    cv::imwrite(outputName2, target_img);
+    std::cout << "Saved annotated image to: " << outputName2 << std::endl;
+
+    //position = 0; ////一张图片里可能有多个人脸，这里只考虑1个人脸的情况
+	vector<Point2f> target_landmark_5;
+	detect_68landmarks_net.detectlandmark(target_img, objects_target[0], target_landmark_5);
+    ofstream target_5landmark("target_5_cpp.txt", ios::out);
+    cout << "target_5_cpp.txt:"<<endl;
+	for(int i = 0; i < target_landmark_5.size(); i++)
+	{
+		target_5landmark << target_landmark_5[i].x << "  "<<target_landmark_5[i].y << "  ";
+	}
+    target_5landmark.close();
+
+    //verify it using target_5.txt
+    // the compare result is different slightly, but to protect following effect ,we store the ground truth
+
+    ifstream srcFile_2target("target_5.txt", ios::in); 
+    if(!srcFile_2target.is_open())
+    {
+        cout << "cann't open the target_5.txt"<<endl;
+    }
+
+    //std::cout << "befor transform \n";
+    for (int i = 0; i < 5; i++)
+    {
+        float x; srcFile_2target >> x; 
+        float y; srcFile_2target >> y;
+        //exchange this for right effect.
+        //float x = pdata[i * 3] / 64.0 * 256.0;        
+        //float y = pdata[i * 3 + 1] / 64.0 * 256.0;
+        target_landmark_5[i] = Point2f(x, y);
+        cout <<i <<": "<< x <<"   "<<y <<std::endl;
+        //circle(m_srcImg, target_landmark_5[i], 3 ,Scalar(0,255,0),-1);
+    }
+    srcFile_2target.close();
+    // correcting 
+    
+
 
 
 
