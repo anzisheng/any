@@ -3,6 +3,8 @@
 #include <opencv2/cudaimgproc.hpp>
 #include <opencv2/cudaimgproc.hpp>
 #include "engine.h"
+#include <vector>
+using namespace std;
 using namespace cv;
 // Utility method for checking if a file exists on disk
 inline bool doesFileExist(const std::string &name) {
@@ -71,4 +73,8 @@ struct YoloV8Config {
     //     "toaster",        "sink",       "refrigerator",  "book",          "clock",        "vase",          "scissors",
     //     "teddy bear",     "hair drier", "toothbrush"};
 };
+
+
+cv::Mat warp_face_by_face_landmark_5(const cv::Mat temp_vision_frame, cv::Mat &crop_img, const std::vector<cv::Point2f> face_landmark_5, const std::vector<cv::Point2f> normed_template, const cv::Size crop_size);
+cv::Mat create_static_box_mask(const int *crop_size, const float face_mask_blur, const int *face_mask_padding);
 #endif

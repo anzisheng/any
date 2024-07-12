@@ -53,6 +53,7 @@ std::vector<std::vector<cv::cuda::GpuMat>> YoloV8::preprocess(const cv::cuda::Gp
     // The reason for the strange format is because it supports models with multiple inputs as well as batching
     // In our case though, the model only has a single input and we are using a batch size of 1.
     std::vector<cv::cuda::GpuMat> input{std::move(resized)};
+    
     std::vector<std::vector<cv::cuda::GpuMat>> inputs{std::move(input)};
 
     // These params will be used in the post-processing stage

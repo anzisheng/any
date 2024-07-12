@@ -3,6 +3,7 @@
 #include  "Face68Landmarks.h"
 #include "facerecognizer.h"
 #include "cmd_line_util.h"
+#include "faceswap.h"
 #include "yolov8.h"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
@@ -23,6 +24,8 @@ int main(int argc, char *argv[]) {
     YoloV8 yoloV8("yolov8n-face.onnx", config); //
     Face68Landmarks detect_68landmarks_net("2dfan4.onnx", config);
     FaceEmbdding face_embedding_net("arcface_w600k_r50.onnx", config);
+    cout<< "begin to trans inswapper_128.onnx" <<endl;
+    SwapFace swap_face_net("inswapper_128.onnx", config);
     
 
     // Read the input image
@@ -124,6 +127,8 @@ int main(int argc, char *argv[]) {
     }
     srcFile.close();
     cout << endl;
+
+   
     
     //target
     std::string target_path = "../images/6.jpg";
@@ -178,9 +183,18 @@ int main(int argc, char *argv[]) {
     }
     srcFile_2target.close();
     // correcting 
+
+
+     //verify source_face_embedding
+    cout <<"verify source_face_embedding:"<<endl;
+    for(int i = 0; i< source_face_embedding.size(); i++)
+    {
+        cout <<  source_face_embedding[i]<<endl;
+    }
+    cout << endl;
+
+    Mat swapimg = swap_face_net.process(target_img, source_face_embedding, target_landmark_5);
     
-
-
 
 
     return 0;

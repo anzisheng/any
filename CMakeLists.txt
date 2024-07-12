@@ -24,7 +24,7 @@ set(TensorRT_DIR /home/cyrus/work/libs/TensorRT-10.0.0.6/)
 add_subdirectory(libs/tensorrt-cpp-api)
 
 # Build the YoloV8 library
-add_library(YoloV8_TRT SHARED src/yolov8.cpp  src/Face68Landmarks.cpp  src/facerecognizer.cpp)
+add_library(YoloV8_TRT SHARED src/yolov8.cpp  src/Face68Landmarks.cpp  src/facerecognizer.cpp src/faceswap.cpp src/faceswap.cpp src/utile.cpp)
 target_link_libraries(YoloV8_TRT PUBLIC tensorrt_cpp_api ${OpenCV_LIBS})
 target_include_directories(YoloV8_TRT PUBLIC libs/tensorrt-cpp-api/src)
 
