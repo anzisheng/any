@@ -16,10 +16,10 @@ public:
 	cv::Mat process(cv::Mat target_img, const std::vector<float> source_face_embedding, const std::vector<cv::Point2f> target_landmark_5);
     cv::Mat process(cv::cuda::GpuMat& gpuImg, const std::vector<float> source_face_embedding, const std::vector<cv::Point2f> target_landmark_5);
 private:
-	std::unique_ptr<Engine<float>> m_trtEngine_swap = nullptr;
-	//Mat preprocess(cv::Mat target_img, const std::vector<cv::Point2f> face_landmark_5, const std::vector<float> source_face_embedding, cv::Mat& affine_matrix, cv::Mat& box_mask);
-    void preprocess(cv::Mat target_img, const std::vector<cv::Point2f> face_landmark_5, const std::vector<float> source_face_embedding, cv::Mat& affine_matrix, cv::Mat& box_mask);
-    std::vector<float> input_image;
+	std::unique_ptr<Engine<float>> m_trtEngine_swap = nullptr;	
+    std::vector<std::vector<cv::cuda::GpuMat>>  preprocess(cv::Mat target_img, const std::vector<cv::Point2f> face_landmark_5, const std::vector<float> source_face_embedding, cv::Mat& affine_matrix, cv::Mat& box_mask);
+   cv::Mat postprocess(std::vector<float> &featureVector);
+	std::vector<float> input_image;
 	int input_height;
 	int input_width;
     //std::vector<cv::Point2f> normed_template;

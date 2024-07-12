@@ -53,33 +53,37 @@ SwapFace::SwapFace(std::string onnxModelPath, const YoloV8Config &config)
     this->normed_template.emplace_back(Point2f(64.02519936, 71.73660032));
     this->normed_template.emplace_back(Point2f(49.54930048, 92.36550016));
     this->normed_template.emplace_back(Point2f(78.72989952, 92.20409984));
-
-
-    
+   
 }
 
-void SwapFace::preprocess(Mat srcimg, const vector<Point2f> face_landmark_5, const vector<float> source_face_embedding, Mat& affine_matrix, Mat& box_mask)
+std::vector<std::vector<cv::cuda::GpuMat>> SwapFace::preprocess(Mat srcimg, const vector<Point2f> face_landmark_5, const vector<float> source_face_embedding, Mat& affine_matrix, Mat& box_mask)
 {
     Mat crop_img;
     affine_matrix = warp_face_by_face_landmark_5(srcimg, crop_img, face_landmark_5, this->normed_template, Size(128, 128));
     cout <<"affine_matrix:\n";
     cout << affine_matrix<<endl;
+    cv::cuda::GpuMat gpu_affine_matrix;
+    gpu_affine_matrix.upload(affine_matrix);
+
     const int crop_size[2] = {crop_img.cols, crop_img.rows};
     box_mask = create_static_box_mask(crop_size, this->FACE_MASK_BLUR, this->FACE_MASK_PADDING);
     cout <<"box_mask:\n";
     cout << crop_img.cols<< "   "<< crop_img.rows<<endl;
-    cout << box_mask<<endl;
+    //cout << box_mask<<endl;
+    cv::cuda::GpuMat gpu_box_mask;
+    gpu_box_mask.upload(box_mask);
+
     //convertTo loss
+    crop_img.convertTo(crop_img, CV_32FC1, 1 / 255.0, 0); 
+    // ?? srcImg or crop_img
+
     cv::cuda::GpuMat gpuImg;
-    gpuImg.upload(srcimg);
+    gpuImg.upload(crop_img);
     //cv::cuda::cvtColor(gpuImg, gpuImg, cv::COLOR_BGR2RGB);
     cv::cuda::GpuMat rgbMat;
     cv::cuda::cvtColor(gpuImg, rgbMat, cv::COLOR_BGR2RGB);
 
-    //crop_img.cvtColor
-
-
-
+    
     float linalg_norm = 0;
     for(int i=0;i<this->len_feature;i++)
     {
@@ -96,8 +100,31 @@ void SwapFace::preprocess(Mat srcimg, const vector<Point2f> face_landmark_5, con
         }
         this->input_embedding[i] = sum/linalg_norm;
     }
+    /**
+    int nbChannels=48;
+    cv::Mat image2(cv::Size(480,640), CV_32FC(nbChannels))
+     */
+     int nbChannels=512;
+    //cv::cuda::GpuMat gpu_input_embedding =  cv::cuda::GpuMat(0,0, CV_32FC(nbChannels));///(int)this->input_embedding.size());
+    //input_embedding.setchannel(512)<<endl;
+
+    //input_embedding = input_embedding.reshape(0, 512);
+    //gpu_input_embedding.upload(this->input_embedding);
+    cv::Mat m(0,0, CV_8UC(nbChannels)); 
+    cout << "embedding"<< m.channels()<<endl;
+
+    //m.reshape(512, 0) ;
+    cv::cuda::GpuMat gpu_input_embedding =  cv::cuda::GpuMat(m);
+    cout << "gpu embedding"<< gpu_input_embedding.channels()<<endl;
+
+    cv::cuda::GpuMat gpu_input_embedding2 = gpu_input_embedding.reshape(512);
+    cout << "gpu embedding2"<< gpu_input_embedding2.channels()<<endl;
+
+    cout << "begin to pack the inputs"<<endl;
 
     auto resized = rgbMat;
+    // Populate the input vectors
+    const auto &inputDims = m_trtEngine_swap->getInputDims();
 
     // Resize to the model expected input size while maintaining the aspect ratio with the use of padding
     if (resized.rows != inputDims[0].d[1] || resized.cols != inputDims[0].d[2]) {
@@ -109,7 +136,13 @@ void SwapFace::preprocess(Mat srcimg, const vector<Point2f> face_landmark_5, con
     // The reason for the strange format is because it supports models with multiple inputs as well as batching
     // In our case though, the model only has a single input and we are using a batch size of 1.
     std::vector<cv::cuda::GpuMat> input{std::move(resized)};
+    std::vector<cv::cuda::GpuMat> input2{std::move(gpu_input_embedding2)};
+    //input.push_back(std::move(gpu_input_embedding));
+    cout << "inputs 2 gpuMat"<<endl;
     std::vector<std::vector<cv::cuda::GpuMat>> inputs{std::move(input)};
+    inputs.push_back(std::move(input2));
+    cout << "inputs has one input which has two gpumat"<<endl;
+
 
     // These params will be used in the post-processing stage
     m_imgHeight = rgbMat.rows;
@@ -123,22 +156,29 @@ void SwapFace::preprocess(Mat srcimg, const vector<Point2f> face_landmark_5, con
 
 cv::Mat SwapFace::process(cv::Mat target_img, const std::vector<float> source_face_embedding, const std::vector<cv::Point2f> target_landmark_5)
 {
+    Mat affine_matrix;
+    Mat box_mask;
+    //this->preprocess(target_img, target_landmark_5, source_face_embedding, affine_matrix, box_mask);
     //preprocess
     const auto input =this->preprocess(target_img, target_landmark_5, source_face_embedding, affine_matrix, box_mask);   
     
     //runInference
     std::vector<std::vector<std::vector<float>>> featureVectors;
-    auto succ = m_trtEngine->runInference(input, featureVectors);
+    auto succ = m_trtEngine_swap->runInference_2v1(input, featureVectors);
+
+    const auto &numOutputs = m_trtEngine_swap->getOutputDims().size();
+
       
     //preprocess
-    std::vector<Object> ret;
+    
     std::vector<float> featureVector;
     Engine<float>::transformOutput(featureVectors, featureVector);
-    ret = postprocessDetect(featureVector);
-    retur ret;
+    cv::Mat mat = postprocess(featureVector);
+    return mat;
     
 }
 
+/*
 cv::Mat SwapFace::process(cv::cuda::GpuMat& gpuImg, const std::vector<float> source_face_embedding, const std::vector<cv::Point2f> target_landmark_5)
 {
 
@@ -152,5 +192,10 @@ cv::Mat SwapFace::process(cv::cuda::GpuMat& gpuImg, const std::vector<float> sou
 
 
     //return result
+
+}
+*/
+
+cv::Mat SwapFace::postprocess(std::vector<float> &featureVector) {
 
 }
